@@ -86,4 +86,26 @@ class NtpService < ServiceObject
     @logger.debug("NTP transition: leaving for #{name} for #{state}")
     [200, { :name => name } ]
   end
+
+  def export_to_deployment_config(role)
+    @logger.debug("NTP export_to_deployment_config: entering")
+
+    config = DeploymentConfig.new("core", @bc_name)
+
+    servers = role.override_attributes["ntp"]["elements"]["ntp-server"].map {|n| NodeObject.find_node_by_name n}
+    addresses = servers.map {|n|
+      net_info = n.get_network_by_type("admin")
+      if net_info.nil?
+        nil
+      else
+        net_info["address"]
+      end
+    }.compact.sort
+
+    config["internal_servers"] = addresses
+    config.save
+
+    @logger.debug("NTP export_to_deployment_config: leaving")
+  end
+
 end

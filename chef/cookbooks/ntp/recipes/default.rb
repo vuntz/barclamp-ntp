@@ -15,16 +15,11 @@
 # limitations under the License.
 #
 
-unless Chef::Config[:solo]
-  env_filter = " AND environment:#{node[:ntp][:config][:environment]}"
-  servers = search(:node, "roles:ntp\\-server#{env_filter}")
-else
-  servers = []
-end
-ntp_servers = []
-servers.each do |n|
-  ntp_servers.push n[:crowbar][:network][:admin][:address] if n.name != node.name
-end
+my_addrs = node[:crowbar][:network].keys.map {|n| node[:crowbar][:network][n][:address]}
+
+ntp_settings = CrowbarConfig.fetch("core", "ntp")
+ntp_servers = ntp_settings.fetch("internal_servers", []).select{|a| !my_addrs.include?(a)}
+
 if node["roles"].include?("ntp-server")
   ntp_servers += node[:ntp][:external_servers]
   is_server = true
